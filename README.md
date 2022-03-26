@@ -32,7 +32,7 @@ package main
 type User struct {
 	Id        int    `json:"id"`         // Id
 	Phone     string `json:"phone"`      // 手机
-	Username  string `json:"username"`   // 手机
+	Username  string `json:"username"`   // 用户名
 	Avatar    string `json:"avatar"`     // 头像
 	CreatedAt int    `json:"created_at"` // CreatedAt
 	UpdatedAt int    `json:"updated_at"` // UpdatedAt
