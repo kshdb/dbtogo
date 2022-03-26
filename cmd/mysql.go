@@ -19,7 +19,7 @@ type (
 	}
 )
 
-func (m *MysqlGen) GetColumns() []*ColumnInfo {
+func (m *MysqlGen) GetColumns() []ColumnInfo {
 	gm, err := gorm.Open(mysql.Open(cmdParam.Dsn))
 	if err != nil {
 		common.Log.Fatalf("连接失败: %s", err)
@@ -43,9 +43,9 @@ func (m *MysqlGen) GetColumns() []*ColumnInfo {
 		Where("TABLE_NAME in ?", cmdParam.Table).
 		Find(&columns)
 
-	result := make([]*ColumnInfo, 0)
+	result := make([]ColumnInfo, 0)
 	for _, v := range columns {
-		result = append(result, &ColumnInfo{
+		result = append(result, ColumnInfo{
 			Table:   v.Table,
 			Name:    v.Name,
 			Comment: v.Comment,

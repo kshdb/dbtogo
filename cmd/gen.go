@@ -1,17 +1,25 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/kzkzzzz/dbtogo/common"
 	"go/format"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
+	"text/template"
 )
 
 type (
+	Model struct {
+		Name     string
+		Table    string
+		Receiver string
+		Columns  []ColumnInfo
+	}
 	ColumnInfo struct {
-		Table   string
+		Table   string `json:"table"`
 		Name    string
 		Comment string
 		Type    string
@@ -19,13 +27,13 @@ type (
 		GoType  string
 	}
 	Gen interface {
-		GetColumns() []*ColumnInfo
+		GetColumns() []ColumnInfo
 	}
 )
 
 func Run(gen Gen) {
 	columns := gen.GetColumns()
-	tc := make(map[string][]*ColumnInfo, 0)
+	tc := make(map[string][]ColumnInfo, 0)
 	for _, column := range columns {
 		if column.Comment == "" {
 			column.Comment = column.GoName
@@ -33,7 +41,11 @@ func Run(gen Gen) {
 		tc[column.Table] = append(tc[column.Table], column)
 	}
 
-	//fmt.Println(tc)
+	tmpl, err := template.ParseFiles("model.tmpl")
+	if err != nil {
+		common.Log.Errorf("加载模板失败: %s", err)
+		return
+	}
 
 	line := strings.Repeat("-", 16)
 
@@ -42,41 +54,40 @@ func Run(gen Gen) {
 		if !ok {
 			continue
 		}
-		tableCamel := common.StrToCamelCase(table)
-		build := make([]string, 0)
-		build = append(build, fmt.Sprintf("package main\ntype %s struct {\n", tableCamel))
-		for _, column := range tColumns {
-			build = append(build, fmt.Sprintf(
-				" %s\t%s `json:\"%s\"` // %s\n",
-				column.GoName, column.GoType, column.Name, column.Comment,
-			))
+
+		name := common.StrToCamelCase(table)
+		m := Model{
+			Name:     name,
+			Table:    table,
+			Receiver: fmt.Sprintf("%s *%s", strings.ToLower(name[:1]), name),
+			Columns:  tColumns,
 		}
-		build = append(build, fmt.Sprintf("}\n"))
 
-		tableNameFunc := fmt.Sprintf("func (%s *%s) TableName() string {\n return \"%s\" \n}",
-			strings.ToLower(tableCamel[:1]), tableCamel, table,
-		)
-		//fmt.Println(tableNameFunc)
-		build = append(build, tableNameFunc)
+		buf := bytes.NewBuffer(nil)
+		err = tmpl.Execute(buf, m)
+		if err != nil {
+			common.Log.Errorf("渲染模板失败: %s", err)
+			continue
+		}
 
-		code := strings.Join(build, "")
-
-		source, _ := format.Source([]byte(code))
+		source, err := format.Source(buf.Bytes())
+		if err != nil {
+			common.Log.Errorf("格式化模板代码失败: %s", err)
+			continue
+		}
 
 		tLine := fmt.Sprintf("%s %s %s", line, table, line)
-
-		fmt.Printf("\n%s\n%s\n%s\n", tLine, string(source), tLine)
+		fmt.Printf("\n%s\n%s\n%s\n\n", tLine, string(source), tLine)
 
 		if cmdParam.Output != "" {
 			filename := filepath.Join(cmdParam.Output, fmt.Sprintf("%s.go", table))
-
-			err := ioutil.WriteFile(filename, source, 0644)
+			err = ioutil.WriteFile(filename, source, 0644)
 			if err != nil {
-				common.Log.Errorf("写入文件%s失败: %s", filename, err)
+				common.Log.Errorf("写入文件失败: %s", err)
 			} else {
 				common.Log.Infof("写入文件%s", filename)
 			}
-
 		}
+
 	}
 }
