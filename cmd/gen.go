@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
 	"github.com/kzkzzzz/dbtogo/common"
 	"go/format"
@@ -31,6 +32,9 @@ type (
 	}
 )
 
+//go:embed template
+var modelTemplate embed.FS
+
 func Run(gen Gen) {
 	columns := gen.GetColumns()
 	tc := make(map[string][]ColumnInfo, 0)
@@ -41,7 +45,8 @@ func Run(gen Gen) {
 		tc[column.Table] = append(tc[column.Table], column)
 	}
 
-	tmpl, err := template.ParseFiles("model.tmpl")
+	tmpl, err := template.ParseFS(modelTemplate, "template/*.tmpl")
+	//tmpl, err := template.ParseFiles("model.tmpl")
 	if err != nil {
 		common.Log.Errorf("加载模板失败: %s", err)
 		return
