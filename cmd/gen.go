@@ -7,6 +7,7 @@ import (
 	"github.com/kzkzzzz/dbtogo/common"
 	"go/format"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -14,10 +15,11 @@ import (
 
 type (
 	Model struct {
-		Name     string
-		Table    string
-		Receiver string
-		Columns  []ColumnInfo
+		PackageName string
+		Name        string
+		Table       string
+		Receiver    string
+		Columns     []ColumnInfo
 	}
 	ColumnInfo struct {
 		Table   string `json:"table"`
@@ -36,6 +38,17 @@ type (
 var modelTemplate embed.FS
 
 func Run(gen Gen) {
+	packageName := "model"
+
+	if cmdParam.Output == "" || cmdParam.Output == "." {
+		currentDir, err := os.Getwd()
+		if err == nil {
+			packageName = filepath.Base(currentDir)
+		}
+	} else {
+		packageName = filepath.Base(cmdParam.Output)
+	}
+
 	columns := gen.GetColumns()
 	tc := make(map[string][]ColumnInfo, 0)
 	for _, column := range columns {
@@ -62,10 +75,11 @@ func Run(gen Gen) {
 
 		name := common.StrToCamelCase(table)
 		m := Model{
-			Name:     name,
-			Table:    table,
-			Receiver: fmt.Sprintf("%s *%s", strings.ToLower(name[:1]), name),
-			Columns:  tColumns,
+			PackageName: packageName,
+			Name:        name,
+			Table:       table,
+			Receiver:    fmt.Sprintf("%s *%s", strings.ToLower(name[:1]), name),
+			Columns:     tColumns,
 		}
 
 		buf := bytes.NewBuffer(nil)

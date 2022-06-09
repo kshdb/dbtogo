@@ -1,4 +1,4 @@
-package main
+package {{ .PackageName }}
 
 type {{ .Name }} struct {
 {{ range $k, $v := .Columns }}
