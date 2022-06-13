@@ -8,8 +8,11 @@ import (
 	"strings"
 )
 
+var _ Gen = &MysqlGen{}
+
 type (
 	MysqlGen struct {
+		importInfo []string
 	}
 	MysqlColumnInfo struct {
 		Table   string `gorm:"column:TABLE_NAME"`
@@ -18,6 +21,18 @@ type (
 		Type    string `gorm:"column:COLUMN_TYPE"`
 	}
 )
+
+func (m *MysqlGen) GetImport() []string {
+	check := make(map[string]bool, 0)
+	uniq := make([]string, 0)
+	for _, v := range m.importInfo {
+		if _, ok := check[v]; !ok {
+			uniq = append(uniq, v)
+			check[v] = true
+		}
+	}
+	return uniq
+}
 
 func (m *MysqlGen) GetColumns() []ColumnInfo {
 	gm, err := gorm.Open(mysql.Open(cmdParam.Dsn))
@@ -66,7 +81,10 @@ func (m *MysqlGen) convertTypeToGo(srcType string) (dstType string) {
 		dstType = "int64"
 	case strings.Contains(srcType, "int"):
 		dstType = "int"
-	case strings.HasPrefix(srcType, "decimal") || strings.HasPrefix(srcType, "dobule"):
+	case strings.HasPrefix(srcType, "decimal"):
+		dstType = "decimal.Decimal"
+		m.importInfo = append(m.importInfo, "github.com/shopspring/decimal")
+	case strings.HasPrefix(srcType, "float") || strings.HasPrefix(srcType, "dobule"):
 		dstType = "float64"
 	case strings.HasPrefix(srcType, "date") || strings.HasPrefix(srcType, "time") ||
 		strings.HasPrefix(srcType, "year") || strings.HasPrefix(srcType, "datetime") ||

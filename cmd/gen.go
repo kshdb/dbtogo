@@ -16,6 +16,7 @@ import (
 type (
 	Model struct {
 		PackageName string
+		ImportInfo  []string
 		Name        string
 		Table       string
 		Receiver    string
@@ -31,6 +32,7 @@ type (
 	}
 	Gen interface {
 		GetColumns() []ColumnInfo
+		GetImport() []string
 	}
 )
 
@@ -77,10 +79,13 @@ func Run(gen Gen) {
 		m := Model{
 			PackageName: packageName,
 			Name:        name,
+			ImportInfo:  gen.GetImport(),
 			Table:       table,
 			Receiver:    fmt.Sprintf("%s *%s", strings.ToLower(name[:1]), name),
 			Columns:     tColumns,
 		}
+
+		fmt.Println(strings.Join(gen.GetImport(), "\n"))
 
 		buf := bytes.NewBuffer(nil)
 		err = tmpl.Execute(buf, m)

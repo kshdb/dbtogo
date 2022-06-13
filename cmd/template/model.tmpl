@@ -1,5 +1,11 @@
 package {{ .PackageName }}
 
+import (
+{{ range .ImportInfo }}
+    "{{ . }}"
+{{end}}
+)
+
 type {{ .Name }} struct {
 {{ range $k, $v := .Columns }}
     {{ $v.GoName }} {{ $v.GoType }} `json:"{{ $v.Name }}"` // {{ $v.Comment -}}
@@ -7,6 +13,6 @@ type {{ .Name }} struct {
 }
 
 func ({{ .Receiver }}) TableName() string {
-    return "{{ .Table }}"
+return "{{ .Table }}"
 }
 
